@@ -23,177 +23,88 @@ export const productService = {
     // Simulamos una llamada a API con Promise
     return new Promise((resolve) => {
       setTimeout(() => {
-        resolve([
+        // Definimos los productos base
+        const products = [
           {
             id: '1',
-            name: 'Contactor Tripolar 32A 220V',
-            code: 'CT-3220',
-            description: 'Contactor tripolar de 32A con bobina de 220V para aplicaciones industriales.',
-            price: 45000,
+            name: 'Contactor Tripolar ABB AX09-30-10-80',
+            sku: 'CTR-ABB-093010',
+            description: 'Contactor tripolar ABB 9A 220V 50/60Hz. Ideal para aplicaciones industriales y sistemas de control automático.',
+            priceMin: 65000,
+            priceMax: 85000,
+            cost: 45000,
+            priceTier: 'Industrial',
             rating: 4.5,
             reviewCount: 12,
-            image: 'https://images.unsplash.com/photo-1621319332247-ce870cdad56c?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=880&q=80',
+            image: 'https://www.electromaterial.cl/wp-content/uploads/2021/01/AX09-30-10-80-300x300.jpg',
             categoryId: '1',
-            brandId: '1',
-            badge: '-15%',
-            badgeType: 'discount',
-            createdAt: '2023-10-15'
+            brandId: '2',
+            stock: 35,
+            technicalSpecs: 'Corriente nominal: 9A\nVoltaje de bobina: 220V AC\nFrecuencia: 50/60Hz\nContactos auxiliares: 1NO+1NC\nMontaje en riel DIN',
+            pricingNotes: 'Aplicar descuentos para proyectos grandes. Verificar disponibilidad antes de cotizar.',
+            requiresCustomQuote: false,
+            badge: 'Disponible',
+            badgeType: 'success',
+            createdAt: '2023-10-15',
+            featured: true
           },
           {
             id: '2',
-            name: 'Interruptor Diferencial 2x25A 30mA',
-            code: 'ID-2530',
-            description: 'Interruptor diferencial bipolar de 25A con sensibilidad de 30mA para protección contra fugas eléctricas.',
-            price: 28500,
+            name: 'Interruptor Automático Schneider C60H-DC',
+            sku: 'INT-SCH-C60HDC',
+            description: 'Interruptor automático Schneider Electric para protección de circuitos DC. Ideal para instalaciones fotovoltaicas y sistemas de energía solar.',
+            priceMin: 38000,
+            priceMax: 55000,
+            cost: 32000,
+            priceTier: 'Estándar',
             rating: 5,
-            reviewCount: 23,
-            image: 'https://images.unsplash.com/photo-1589697547048-962940985015?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=764&q=80',
+            reviewCount: 8,
+            image: 'https://www.se.com/cl/es/product/%7B%7Bitem.productUrlPath%7D%7D/image/C60H-DC.JPG',
             categoryId: '2',
-            brandId: '2',
+            brandId: '1',
+            stock: 12,
+            technicalSpecs: 'Corriente nominal: 10A\nCurva tipo C\nCapacidad de ruptura: 10kA\nNúmero de polos: 2\nTensión nominal: 500V DC',
+            pricingNotes: 'Stock limitado, verificar disponibilidad',
+            requiresCustomQuote: false,
             badge: 'Nuevo',
             badgeType: 'new',
-            createdAt: '2023-11-05'
+            createdAt: '2023-11-05',
+            featured: false
           },
           {
             id: '3',
-            name: 'Panel LED 60x60 45W 4000K',
-            code: 'PL-6045',
-            description: 'Panel LED de 60x60cm con 45W de potencia y luz neutra (4000K) para iluminación de oficinas y comercios.',
-            price: 32000,
-            rating: 4,
-            reviewCount: 18,
-            image: 'https://images.unsplash.com/photo-1615802069019-342a3a4ae255?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80',
-            categoryId: '3',
-            brandId: '3',
-            createdAt: '2023-09-20'
-          },
-          {
-            id: '4',
-            name: 'Fuente de Alimentación 24V 5A',
-            code: 'FA-2405',
-            description: 'Fuente de alimentación industrial de 24V DC y 5A para automatización y control.',
-            price: 38500,
-            rating: 4.8,
-            reviewCount: 9,
-            image: 'https://images.unsplash.com/photo-1555664424-778a1e5e1b48?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80',
-            categoryId: '4',
-            brandId: '4',
-            badge: 'Destacado',
-            badgeType: 'featured',
-            createdAt: '2023-10-08'
-          },
-          {
-            id: '5',
-            name: 'Cable Eléctrico 2.5mm² (100m)',
-            code: 'CE-25100',
-            description: 'Rollo de cable eléctrico de 2.5mm² de sección con 100 metros de longitud.',
-            price: 22000,
-            rating: 4.2,
-            reviewCount: 31,
-            image: 'https://images.unsplash.com/photo-1601084881623-cdf9a8ea242c?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=764&q=80',
-            categoryId: '5',
-            brandId: '5',
-            createdAt: '2023-08-15'
-          },
-          {
-            id: '6',
-            name: 'Térmico Tripolar 32A Curva C',
-            code: 'TT-32C',
-            description: 'Interruptor termomagnético tripolar de 32A con curva C para protección de circuitos eléctricos.',
-            price: 18500,
-            rating: 4.7,
-            reviewCount: 15,
-            image: 'https://images.unsplash.com/photo-1589753345288-e811b0aa8f18?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1469&q=80',
-            categoryId: '2',
-            brandId: '1',
-            createdAt: '2023-09-05'
-          },
-          {
-            id: '7',
-            name: 'Tablero Modular 24 Módulos',
-            code: 'TM-24M',
-            description: 'Tablero modular para 24 módulos con puerta y riel DIN, ideal para instalaciones eléctricas residenciales.',
-            price: 42000,
-            rating: 4.4,
-            reviewCount: 7,
-            image: 'https://images.unsplash.com/photo-1568654360516-7a3aff4c3b4f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80',
-            categoryId: '6',
-            brandId: '2',
-            badge: 'Hot',
-            badgeType: 'hot',
-            createdAt: '2023-11-10'
-          },
-          {
-            id: '8',
-            name: 'Sensor de Movimiento 360°',
-            code: 'SM-360',
-            description: 'Sensor de movimiento de techo con detección de 360° y ajuste de tiempo y luminosidad.',
-            price: 16800,
-            rating: 4.1,
-            reviewCount: 22,
-            image: 'https://images.unsplash.com/photo-1585123388867-3bfe7f9e3e61?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80',
-            categoryId: '7',
-            brandId: '3',
-            createdAt: '2023-10-02'
-          },
-          // Agregamos más productos
-          {
-            id: '9',
-            name: 'PLC Modular Expandible',
-            code: 'PLC-ME',
-            description: 'Controlador lógico programable con entradas y salidas expandibles.',
-            price: 89000,
+            name: 'Sistema de Control Industrial Personalizado',
+            sku: 'SIS-CTRL-CUSTOM',
+            description: 'Sistema de control industrial personalizado según las necesidades específicas de cada cliente. Incluye diseño, programación y puesta en marcha.',
+            priceMin: null,
+            priceMax: null,
+            cost: null,
+            priceTier: 'Especializado',
             rating: 4.9,
             reviewCount: 6,
-            image: 'https://images.unsplash.com/photo-1563770660941-3bbce274d3b3?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80',
-            categoryId: '4',
-            brandId: '6',
-            badge: 'Nuevo',
-            badgeType: 'new',
-            createdAt: '2023-11-15'
-          },
-          {
-            id: '10',
-            name: 'Luminaria Industrial LED 150W',
-            code: 'LI-150',
-            description: 'Luminaria industrial de alta eficiencia con 150W de potencia y 15000lm.',
-            price: 78500,
-            rating: 4.6,
-            reviewCount: 11,
-            image: 'https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80',
+            image: 'https://new.siemens.com/global/en/products/automation/systems/industrial/plc/_jcr_content/root/responsivegrid/tabs/items/tab_912393233_copy_/tabPar/productcarouselteasers/productcarouselteaser/teaserbox/image.component.proportional.medium.jpg/1700570172404/simatic-s7-1500-cpu-1518f-4-pn-dp.jpg',
             categoryId: '3',
-            brandId: '7',
-            createdAt: '2023-09-11'
-          },
-          {
-            id: '11',
-            name: 'Variador de Frecuencia 2.2kW',
-            code: 'VF-22',
-            description: 'Variador de frecuencia trifásico de 2.2kW para control de motores.',
-            price: 125000,
-            rating: 4.7,
-            reviewCount: 14,
-            image: 'https://images.unsplash.com/photo-1607148891220-8528c2148c0e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80',
-            categoryId: '1',
             brandId: '4',
-            badge: '-10%',
-            badgeType: 'discount',
-            createdAt: '2023-10-20'
-          },
-          {
-            id: '12',
-            name: 'Canaleta PVC 40x25mm (2m)',
-            code: 'C-4025',
-            description: 'Canaleta de PVC para cableado eléctrico de 40x25mm en tramos de 2 metros.',
-            price: 3200,
-            rating: 4.3,
-            reviewCount: 28,
-            image: 'https://images.unsplash.com/photo-1544724569-5f546fd6f2b5?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1074&q=80',
-            categoryId: '5',
-            brandId: '5',
-            createdAt: '2023-08-20'
+            stock: 0,
+            technicalSpecs: 'A definir según requerimientos del cliente',
+            pricingNotes: 'Requiere levantamiento técnico antes de cotizar. Contactar al departamento de ingeniería.',
+            requiresCustomQuote: true,
+            badge: 'Cotizar',
+            badgeType: 'info',
+            createdAt: '2023-09-15',
+            featured: true
           }
-        ]);
+        ];
+        
+        // Generar slug para cada producto
+        products.forEach(product => {
+          // Solo generar slug si no existe ya
+          if (!product.slug) {
+            product.slug = generateSlug(product.name);
+          }
+        });
+        
+        resolve(products);
       }, API_DELAY);
     });
     
@@ -201,7 +112,16 @@ export const productService = {
     /*
     try {
       const response = await axios.get(`${API_URL}/products`);
-      return response.data;
+      const products = response.data;
+      
+      // Generar slugs si es necesario
+      products.forEach(product => {
+        if (!product.slug) {
+          product.slug = generateSlug(product.name);
+        }
+      });
+      
+      return products;
     } catch (error) {
       console.error('Error al obtener productos:', error);
       throw error;
@@ -209,14 +129,21 @@ export const productService = {
     */
   },
   
-  // Obtener un producto por su ID
-  async getProductById(id) {
+  // Obtener un producto por su ID o slug
+  async getProductById(idOrSlug) {
     // Simulación
     return new Promise((resolve, reject) => {
       setTimeout(async () => {
         try {
           const products = await this.getProducts();
-          const product = products.find(p => p.id === id);
+          
+          // Buscar primero por ID
+          let product = products.find(p => p.id === idOrSlug);
+          
+          // Si no se encuentra por ID, buscar por slug
+          if (!product) {
+            product = products.find(p => p.slug === idOrSlug);
+          }
           
           if (product) {
             resolve(product);
@@ -232,10 +159,24 @@ export const productService = {
     // API Real
     /*
     try {
-      const response = await axios.get(`${API_URL}/products/${id}`);
-      return response.data;
+      // Intentar obtener por ID primero
+      try {
+        const response = await axios.get(`${API_URL}/products/${idOrSlug}`);
+        return response.data;
+      } catch (idError) {
+        // Si falla, intentar buscar por slug
+        const allProductsResponse = await axios.get(`${API_URL}/products`);
+        const products = allProductsResponse.data;
+        const product = products.find(p => p.slug === idOrSlug);
+        
+        if (product) {
+          return product;
+        } else {
+          throw new Error('Producto no encontrado');
+        }
+      }
     } catch (error) {
-      console.error(`Error al obtener el producto ${id}:`, error);
+      console.error(`Error al obtener el producto ${idOrSlug}:`, error);
       throw error;
     }
     */
@@ -248,11 +189,7 @@ export const productService = {
         const categories = [
           { id: '1', name: 'Contactores y Relés' },
           { id: '2', name: 'Protección Eléctrica' },
-          { id: '3', name: 'Iluminación' },
-          { id: '4', name: 'Automatización' },
-          { id: '5', name: 'Cables y Accesorios' },
-          { id: '6', name: 'Tableros Eléctricos' },
-          { id: '7', name: 'Sensores y Controles' }
+          { id: '3', name: 'Automatización' }
         ];
         
         // Añadir slugs a todas las categorías
@@ -269,15 +206,19 @@ export const productService = {
   async getBrands() {
     return new Promise((resolve) => {
       setTimeout(() => {
-        resolve([
+        const brands = [
           { id: '1', name: 'Schneider Electric' },
           { id: '2', name: 'ABB' },
-          { id: '3', name: 'Philips' },
-          { id: '4', name: 'Siemens' },
-          { id: '5', name: 'Legrand' },
-          { id: '6', name: 'Allen-Bradley' },
-          { id: '7', name: 'Osram' }
-        ]);
+          { id: '3', name: 'Legrand' },
+          { id: '4', name: 'Siemens' }
+        ];
+        
+        // Añadir slugs a todas las marcas
+        brands.forEach(brand => {
+          brand.slug = generateSlug(brand.name);
+        });
+        
+        resolve(brands);
       }, API_DELAY);
     });
   },
@@ -291,7 +232,7 @@ export const productService = {
           const results = products.filter(p => 
             p.name.toLowerCase().includes(term.toLowerCase()) || 
             p.description.toLowerCase().includes(term.toLowerCase()) ||
-            p.code.toLowerCase().includes(term.toLowerCase())
+            p.sku.toLowerCase().includes(term.toLowerCase())
           );
           resolve(results);
         } catch (error) {
@@ -302,7 +243,7 @@ export const productService = {
     });
   },
 
-  // Añadir este método al productService
+  // Obtener categoría por slug o ID
   async getCategoryBySlugOrId(slugOrId) {
     try {
       const categories = await this.getCategories();
@@ -320,5 +261,86 @@ export const productService = {
       console.error('Error al buscar categoría:', error);
       throw error;
     }
+  },
+  
+  // Obtener marca por slug o ID
+  async getBrandBySlugOrId(slugOrId) {
+    try {
+      const brands = await this.getBrands();
+      
+      // Primero intentar encontrar por slug
+      let brand = brands.find(b => b.slug === slugOrId);
+      
+      // Si no se encuentra por slug, intentar por ID
+      if (!brand) {
+        brand = brands.find(b => b.id.toString() === slugOrId);
+      }
+      
+      return brand;
+    } catch (error) {
+      console.error('Error al buscar marca:', error);
+      throw error;
+    }
+  },
+  
+  // Obtener productos destacados
+  async getFeaturedProducts() {
+    return new Promise(async (resolve) => {
+      try {
+        const allProducts = await this.getProducts();
+        const featured = allProducts.filter(p => p.featured === true);
+        resolve(featured);
+      } catch (error) {
+        console.error('Error al obtener productos destacados:', error);
+        resolve([]);
+      }
+    });
+  },
+  
+  // Solicitar cotización de un producto
+  async requestQuote(productData, customerData) {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // Simulamos el envío de la solicitud de cotización
+        console.log('Solicitud de cotización enviada:', { productData, customerData });
+        
+        // Generar un ID único para la solicitud
+        const quoteId = 'COT-' + Math.floor(Math.random() * 10000);
+        
+        resolve({
+          success: true,
+          quoteId: quoteId,
+          message: 'Su solicitud de cotización ha sido recibida. Le contactaremos a la brevedad.'
+        });
+      }, API_DELAY);
+    });
+  },
+  
+  // Obtener productos por categoría
+  async getProductsByCategory(categoryId) {
+    return new Promise(async (resolve) => {
+      try {
+        const allProducts = await this.getProducts();
+        const filteredProducts = allProducts.filter(p => p.categoryId === categoryId);
+        resolve(filteredProducts);
+      } catch (error) {
+        console.error('Error al obtener productos por categoría:', error);
+        resolve([]);
+      }
+    });
+  },
+  
+  // Obtener productos por marca
+  async getProductsByBrand(brandId) {
+    return new Promise(async (resolve) => {
+      try {
+        const allProducts = await this.getProducts();
+        const filteredProducts = allProducts.filter(p => p.brandId === brandId);
+        resolve(filteredProducts);
+      } catch (error) {
+        console.error('Error al obtener productos por marca:', error);
+        resolve([]);
+      }
+    });
   }
 };

@@ -100,10 +100,19 @@ const routes = [
    path: '/iniciar-sesion',
     name: 'Login',
     component: () => import('@/pages/iniciar-sesion.vue')
+  },{
+    path: '/marcas',
+    name: 'Brands',
+    component: () => import('@/pages/marcas/index.vue')
+  },{
+    path: '/marcas/:brand',
+    name: 'BrandProducts',
+    component: () => import('@/pages/marcas/[brand].vue')
   },
   // Agregar rutas de administración
-  ...adminRoutes,
+  ...adminRoutes
   // Ruta catch-all para 404
+  ,
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
