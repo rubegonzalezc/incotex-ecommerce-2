@@ -116,6 +116,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import AppHeader from '@/components/layout/AppHeader.vue';
 import AppFooter from '@/components/layout/AppFooter.vue';
+import { userService } from '@/services/userService';
 
 const router = useRouter();
 const route = useRoute();
@@ -146,81 +147,19 @@ const handleLogin = async () => {
   
   try {
     loading.value = true;
+    loginError.value = '';
     
-    // Simulación de inicio de sesión (reemplazar con llamada a API real)
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Llamar al servicio de usuario para iniciar sesión
+    const result = await userService.login(email.value, password.value, rememberMe.value);
     
-    // Verificar credenciales (simulado)
-    if (email.value === 'cliente@ejemplo.cl' && password.value === '123456') {
-      // Creamos un objeto con los datos del usuario
-      const userData = {
-        email: email.value,
-        firstName: 'Juan',
-        lastName: 'Pérez',
-        token: 'simulated-jwt-token-' + Math.random().toString(36).substring(2),
-        isAdmin: false
-      };
-      
-      // Guardar en localStorage
-      localStorage.setItem('user_data', JSON.stringify(userData));
-      
-      // Si se seleccionó recordarme, guardamos el email por separado
-      if (rememberMe.value) {
-        localStorage.setItem('user_email', email.value);
-      }
-      
-      // Disparar evento de storage para actualizar otros componentes
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: 'user_data',
-        newValue: JSON.stringify(userData)
-      }));
-      
-      loginError.value = '';
-      console.log('Inicio de sesión exitoso como cliente');
-      
+    if (result.success) {
       // Redirigir a la página de destino o a mi-cuenta por defecto
       const redirectPath = route.query.redirect || '/mi-cuenta';
       router.push(redirectPath);
-    } 
-    // Verificar si es admin
-    else if (email.value === 'admin@incotex.cl' && password.value === 'admin123') {
-      // Creamos un objeto con los datos del administrador
-      const adminData = {
-        email: email.value,
-        firstName: 'Admin',
-        lastName: 'Incotex',
-        token: 'admin-jwt-token-' + Math.random().toString(36).substring(2),
-        isAdmin: true
-      };
-      
-      // Guardar en localStorage
-      localStorage.setItem('user_data', JSON.stringify(adminData));
-      
-      // Si se seleccionó recordarme, guardamos el email por separado
-      if (rememberMe.value) {
-        localStorage.setItem('user_email', email.value);
-      }
-      
-      // Disparar evento de storage para actualizar otros componentes
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: 'user_data',
-        newValue: JSON.stringify(adminData)
-      }));
-      
-      loginError.value = '';
-      console.log('Inicio de sesión exitoso como administrador');
-      
-      // Redirigir al panel de administración o a la página solicitada
-      const redirectPath = route.query.redirect || '/admin';
-      router.push(redirectPath);
-    }
-    else {
-      // Error de credenciales
-      loginError.value = 'Correo electrónico o contraseña incorrectos';
     }
   } catch (error) {
     console.error('Error de inicio de sesión:', error);
-    loginError.value = 'Se produjo un error al iniciar sesión. Inténtalo nuevamente.';
+    loginError.value = error.message || 'Se produjo un error al iniciar sesión. Inténtalo nuevamente.';
   } finally {
     loading.value = false;
   }
@@ -238,7 +177,7 @@ const goToRegister = () => {
 // Cargar datos guardados
 onMounted(() => {
   // Verificar si hay un email guardado
-  const savedEmail = localStorage.getItem('user_email');
+  const savedEmail = userService.getSavedEmail();
   if (savedEmail) {
     email.value = savedEmail;
     rememberMe.value = true;

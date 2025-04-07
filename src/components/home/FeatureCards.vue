@@ -25,12 +25,64 @@
 </template>
 
 <script setup>
-defineProps({
+import { ref, onMounted } from 'vue';
+import { productService } from '@/services/productService';
+
+// Estado local para almacenar las features obtenidas
+const features = ref([]);
+
+// Props para permitir pasar features predeterminadas si es necesario
+const props = defineProps({
   features: {
     type: Array,
-    required: true
+    default: () => []
   }
-})
+});
+
+// Función para cargar las features desde el productService
+const loadFeatures = async () => {
+  try {
+    // Si se proporcionaron features como prop, usarlas
+    if (props.features && props.features.length > 0) {
+      features.value = props.features;
+      return;
+    }
+
+    // De lo contrario, obtenerlas del servicio
+    const featureData = await productService.getFeatures();
+    features.value = featureData;
+  } catch (error) {
+    console.error('Error al cargar las características:', error);
+    // Proporcionar datos de respaldo en caso de error
+    features.value = [
+      {
+        icon: "fa-solid fa-truck-fast",
+        title: "Envío Rápido",
+        description: "Entrega en todo Chile con seguimiento en tiempo real."
+      },
+      {
+        icon: "fa-solid fa-shield-halved",
+        title: "Garantía de Calidad",
+        description: "Todos nuestros productos cuentan con garantía."
+      },
+      {
+        icon: "fa-solid fa-headset",
+        title: "Soporte Técnico",
+        description: "Asesoría especializada antes y después de tu compra."
+      },
+      {
+        icon: "fa-solid fa-tag",
+        title: "Mejores Precios",
+        description: "Precios competitivos para proyectos."
+      }
+    ];
+  }
+};
+
+// Cargar las features al montar el componente
+onMounted(() => {
+  loadFeatures();
+});
 </script>
 
 <style scoped>

@@ -108,6 +108,10 @@ const routes = [
     path: '/marcas/:brand',
     name: 'BrandProducts',
     component: () => import('@/pages/marcas/[brand].vue')
+  },{
+    path: '/categorias',
+    name: 'Categories',
+    component: () => import('@/pages/categorias/index.vue')
   },
   // Agregar rutas de administración
   ...adminRoutes

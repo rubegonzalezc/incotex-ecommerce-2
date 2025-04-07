@@ -342,5 +342,105 @@ export const productService = {
         resolve([]);
       }
     });
+  },
+
+  // Obtener características
+  async getFeatures() {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve([
+          {
+            icon: "fa-solid fa-truck-fast",
+            title: "Envío Rápido",
+            description: "Entrega en todo Chile con seguimiento en tiempo real de tus pedidos."
+          },
+          {
+            icon: "fa-solid fa-shield-halved",
+            title: "Garantía de Calidad",
+            description: "Todos nuestros productos cuentan con garantía y certificaciones."
+          },
+          {
+            icon: "fa-solid fa-headset",
+            title: "Soporte Técnico",
+            description: "Asesoría especializada antes, durante y después de tu compra."
+          },
+          {
+            icon: "fa-solid fa-tag",
+            title: "Cotización Personalizada",
+            description: "Precios especiales adaptados a tus necesidades y volumen de compra."
+          }
+        ]);
+      }, API_DELAY);
+    });
+    
+    // Versión para API real:
+    /*
+    try {
+      const response = await axios.get(`${API_URL}/features`);
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener características:', error);
+      throw error;
+    }
+    */
+  },
+
+  // Obtener productos relacionados
+  async getRelatedProducts(productId, limit = 4) {
+    return new Promise(async (resolve) => {
+      try {
+        const allProducts = await this.getProducts();
+        const currentProduct = allProducts.find(p => p.id === productId);
+        
+        if (!currentProduct) {
+          resolve([]);
+          return;
+        }
+        
+        // 1. Primero intentar obtener productos de la misma categoría y marca
+        let relatedProducts = allProducts.filter(p => 
+          p.id !== productId && 
+          p.categoryId === currentProduct.categoryId &&
+          p.brandId === currentProduct.brandId
+        );
+        
+        // 2. Si no hay suficientes, agregar productos de la misma categoría (diferentes marcas)
+        if (relatedProducts.length < limit) {
+          const sameCategory = allProducts.filter(p => 
+            p.id !== productId && 
+            p.categoryId === currentProduct.categoryId &&
+            p.brandId !== currentProduct.brandId
+          );
+          
+          relatedProducts = [...relatedProducts, ...sameCategory];
+        }
+        
+        // 3. Si todavía no hay suficientes, agregar productos de la misma marca (diferentes categorías)
+        if (relatedProducts.length < limit) {
+          const sameBrand = allProducts.filter(p => 
+            p.id !== productId && 
+            p.categoryId !== currentProduct.categoryId &&
+            p.brandId === currentProduct.brandId
+          );
+          
+          relatedProducts = [...relatedProducts, ...sameBrand];
+        }
+        
+        // Limitar al número solicitado y priorizar los productos destacados
+        relatedProducts.sort((a, b) => {
+          // Priorizar productos destacados
+          if (a.featured && !b.featured) return -1;
+          if (!a.featured && b.featured) return 1;
+          
+          // Luego por rating
+          return b.rating - a.rating;
+        });
+        
+        resolve(relatedProducts.slice(0, limit));
+      } catch (error) {
+        console.error('Error al obtener productos relacionados:', error);
+        resolve([]);
+      }
+    });
   }
 };

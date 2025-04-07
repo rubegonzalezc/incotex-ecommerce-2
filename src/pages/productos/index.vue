@@ -15,7 +15,7 @@
         <v-card flat class="mb-4 pa-4">
           <v-text-field
             v-model="searchTerm"
-            label="Buscar productos por nombre, código o descripción"
+            label="Buscar productos por nombre, SKU o descripción"
             variant="outlined"
             density="comfortable"
             hide-details
@@ -40,7 +40,7 @@
                     v-for="category in categories"
                     :key="category.id"
                     :value="category"
-                    @click="setSelectedCategory(category.id)"
+                    @click="navigateToCategory(category.id, category.slug)"
                     :class="{ 'selected-category': selectedCategory === category.id }"
                   >
                     <v-list-item-title>{{ category.name }}</v-list-item-title>
@@ -136,7 +136,7 @@
                       height="220"
                       cover
                       class="product-image"
-                      @click="navigateToProduct(product.id)"
+                      @click="navigateToProduct(product.id, product.slug)"
                       style="cursor: pointer;"
                     >
                       <div class="product-badge" v-if="product.badge">
@@ -148,7 +148,7 @@
                   <v-card-text class="pa-4">
                     <h3 
                       class="text-subtitle-1 font-weight-bold mb-2 product-title text-dark"
-                      @click="navigateToProduct(product.id)"
+                      @click="navigateToProduct(product.id, product.slug)"
                       style="cursor: pointer;"
                     >
                       {{ product.name }}
@@ -179,7 +179,7 @@
                     
                     <div class="d-flex align-center justify-space-between">
                       <div class="product-code text-caption">
-                        Código: {{ product.code }}
+                        Código: {{ product.sku }}
                       </div>
                       <v-btn
                         color="primary"
@@ -249,7 +249,7 @@
                   v-for="category in categories"
                   :key="category.id"
                   :value="category"
-                  @click="setSelectedCategory(category.id)"
+                  @click="navigateToCategory(category.id, category.slug)"
                   :class="{ 'selected-category': selectedCategory === category.id }"
                 >
                   <v-list-item-title>{{ category.name }}</v-list-item-title>
@@ -298,6 +298,13 @@
           >
             Cerrar
           </v-btn>
+          <v-btn
+            color="white"
+            variant="outlined"
+            to="/mi-cotizacion"
+          >
+            Ver Cotización
+          </v-btn>
         </template>
       </v-snackbar>
     </div>
@@ -306,13 +313,14 @@
   
   <script setup>
   import { ref, computed, onMounted, watch } from 'vue';
-  import { useRouter } from 'vue-router';
+  import { useRouter, useRoute } from 'vue-router';
   import { useQuoteStore } from '@/stores/quoteStore';
   import AppHeader from '@/components/layout/AppHeader.vue';
   import { productService } from '@/services/productService';
   
   // Router y Quote Store
   const router = useRouter();
+  const route = useRoute();
   const quoteStore = useQuoteStore();
   
   // Estados
@@ -349,10 +357,10 @@
     if (searchTerm.value.trim()) {
       const term = searchTerm.value.toLowerCase().trim();
       result = result.filter(product => 
-        product.name.toLowerCase().includes(term) || 
-        product.code.toLowerCase().includes(term) || 
-        (product.description && product.description.toLowerCase().includes(term))
-      );
+  product.name.toLowerCase().includes(term) || 
+  (product.sku && product.sku.toLowerCase().includes(term)) || // Usa sku y añade verificación
+  (product.description && product.description.toLowerCase().includes(term))
+);
     }
     
     // Filtrar por categoría
@@ -418,13 +426,22 @@
   };
   
   const addProductToQuote = (product) => {
-    quoteStore.addToQuote(product);
+    quoteStore.addToQuote({
+      ...product,
+      quantity: 1
+    });
     snackbarText.value = `${product.name} añadido a tu cotización`;
     showSnackbar.value = true;
   };
   
-  const navigateToProduct = (productId) => {
-    router.push(`/productos/${productId}`);
+  const navigateToProduct = (productId, productSlug) => {
+    // Usar slug si está disponible, de lo contrario usar id
+    router.push(`/productos/${productSlug || productId}`);
+  };
+
+  const navigateToCategory = (categoryId, categorySlug) => {
+    // Usar slug si está disponible, de lo contrario usar id
+    router.push(`/categorias/${categorySlug || categoryId}`);
   };
   
   // Observar cambios en los filtros y búsqueda para resetear la paginación
@@ -446,12 +463,44 @@
       // Cargar marcas
       const brandsData = await productService.getBrands();
       brands.value = brandsData;
+      
+      // Comprobar si hay parámetros de búsqueda en la URL
+      const queryParams = route.query;
+      
+      if (queryParams.q) {
+        searchTerm.value = queryParams.q;
+      }
+      
+      if (queryParams.category) {
+        // Buscar la categoría por ID o slug
+        const categoryId = queryParams.category;
+        selectedCategory.value = categoryId;
+      }
+      
     } catch (error) {
       console.error('Error cargando datos:', error);
     } finally {
       loading.value = false;
     }
   });
+
+  // Agregar watch para los cambios en la ruta
+  watch(() => route.query, (newQuery) => {
+    if (newQuery.q) {
+      searchTerm.value = newQuery.q;
+    } else {
+      searchTerm.value = '';
+    }
+    
+    if (newQuery.category) {
+      selectedCategory.value = newQuery.category;
+    } else {
+      selectedCategory.value = null;
+    }
+    
+    // Resetear la página
+    currentPage.value = 1;
+  }, { deep: true });
   </script>
   
   <style scoped>
@@ -506,7 +555,7 @@
     z-index: 1;
   }
   
-  .badge-discount, .badge-new, .badge-hot, .badge-featured {
+  .badge-discount, .badge-new, .badge-hot, .badge-featured, .badge-success, .badge-info {
     display: inline-block;
     padding: 4px 8px;
     border-radius: 4px;
@@ -529,6 +578,14 @@
   
   .badge-featured {
     background-color: #4CAF50;
+  }
+  
+  .badge-success {
+    background-color: #4CAF50;
+  }
+  
+  .badge-info {
+    background-color: #9C27B0;
   }
   
   .product-title {

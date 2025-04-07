@@ -5,10 +5,15 @@
       <p class="text-subtitle-1 section-subtitle">Soluciones profesionales para tu proyecto</p>
     </div>
 
-    <v-row>
+    <!-- Indicador de carga -->
+    <div v-if="loading" class="d-flex justify-center my-8">
+      <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
+    </div>
+
+    <v-row v-else>
       <v-col 
         v-for="(product, index) in products" 
-        :key="index"
+        :key="product.id || index"
         cols="12" 
         sm="6"
         md="3"
@@ -25,7 +30,7 @@
               height="220"
               cover
               class="product-image"
-              @click="navigateToProduct(product.link)"
+              @click="navigateToProduct(product.id, product.slug)"
               style="cursor: pointer;"
             >
               <div class="product-badge" v-if="product.badge">
@@ -37,7 +42,7 @@
           <v-card-text class="pa-4">
             <h3 
               class="text-subtitle-1 font-weight-bold mb-2 product-title text-dark"
-              @click="navigateToProduct(product.link)"
+              @click="navigateToProduct(product.id, product.slug)"
               style="cursor: pointer;"
             >
               {{ product.name }}
@@ -68,13 +73,13 @@
             
             <div class="d-flex align-center justify-space-between">
               <div class="product-code text-caption">
-                Código: {{ product.code }}
+                Código: {{ product.sku }}
               </div>
               <v-btn
                 color="primary"
                 size="small"
                 variant="text"
-                @click="addProductToQuote(product)"
+                @click.stop="addProductToQuote(product)"
                 class="quote-btn"
               >
                 Cotizar <v-icon icon="fa-solid fa-clipboard-list" size="x-small" class="ml-1"></v-icon>
@@ -115,27 +120,41 @@
         >
           Cerrar
         </v-btn>
+        <v-btn
+          color="white"
+          variant="outlined"
+          to="/mi-cotizacion"
+        >
+          Ver Cotización
+        </v-btn>
       </template>
     </v-snackbar>
   </v-container>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuoteStore } from '@/stores/quoteStore';
+import { productService } from '@/services/productService';
 
-defineProps({
-  products: {
-    type: Array,
-    required: true
-  }
-});
-
-const router = useRouter();
-const quoteStore = useQuoteStore();
+// Estados
+const loading = ref(true);
+const products = ref([]);
 const showSnackbar = ref(false);
 const snackbarText = ref('');
+
+// Servicios
+const router = useRouter();
+const quoteStore = useQuoteStore();
+
+// Props para permitir pasar productos predeterminados si es necesario
+const props = defineProps({
+  products: {
+    type: Array,
+    default: () => []
+  }
+});
 
 // Asegurarse de que el rating sea un número válido
 const validateRating = (rating) => {
@@ -145,15 +164,43 @@ const validateRating = (rating) => {
 
 // Método para agregar un producto a la cotización
 const addProductToQuote = (product) => {
-  quoteStore.addToQuote(product);
+  quoteStore.addToQuote({
+    ...product,
+    quantity: 1
+  });
   snackbarText.value = `${product.name} añadido a tu cotización`;
   showSnackbar.value = true;
 };
 
 // Método para navegar al detalle del producto
-const navigateToProduct = (link) => {
-  router.push(link);
+const navigateToProduct = (id, slug) => {
+  // Usar slug si está disponible, de lo contrario usar id
+  router.push(`/productos/${slug || id}`);
 };
+
+// Cargar productos destacados
+const loadFeaturedProducts = async () => {
+  try {
+    // Si se proporcionaron productos como prop, usarlos
+    if (props.products && props.products.length > 0) {
+      products.value = props.products;
+      return;
+    }
+
+    // De lo contrario, obtenerlos del servicio
+    products.value = await productService.getFeaturedProducts();
+  } catch (error) {
+    console.error('Error al cargar productos destacados:', error);
+    products.value = [];
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Cargar datos al montar el componente
+onMounted(() => {
+  loadFeaturedProducts();
+});
 </script>
 
 <style scoped>
@@ -192,7 +239,7 @@ const navigateToProduct = (link) => {
   z-index: 1;
 }
 
-.badge-discount, .badge-new, .badge-hot, .badge-featured {
+.badge-discount, .badge-new, .badge-hot, .badge-featured, .badge-success, .badge-info {
   display: inline-block;
   padding: 4px 8px;
   border-radius: 4px;
@@ -213,8 +260,12 @@ const navigateToProduct = (link) => {
   background-color: #F44336;
 }
 
-.badge-featured {
+.badge-featured, .badge-success {
   background-color: #4CAF50;
+}
+
+.badge-info {
+  background-color: #9C27B0;
 }
 
 .product-title {

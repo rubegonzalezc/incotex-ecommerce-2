@@ -95,6 +95,7 @@
         <v-sheet v-if="mobileSearch" color="white" class="d-md-none py-2 px-4">
           <div class="d-flex align-center">
             <v-text-field
+              v-model="mobileSearchQuery"
               variant="outlined"
               density="compact"
               hide-details
@@ -104,8 +105,9 @@
               autofocus
               append-inner-icon="fa-solid fa-times"
               @click:append-inner="mobileSearch = false"
+              @keyup.enter="searchMobile"
             />
-            <v-btn color="primary" class="ml-2" size="small">
+            <v-btn color="primary" class="ml-2" size="small" @click="searchMobile">
               <v-icon icon="fa-solid fa-magnifying-glass" />
             </v-btn>
           </div>
@@ -273,6 +275,7 @@
                 class="search-input rounded-0"
                 color="primary"
                 v-model="searchQuery"
+                @keyup.enter="searchProducts"
               />
               <v-btn color="primary" elevation="0" class="search-button rounded-l-0" height="40" @click="searchProducts">
                 <v-icon icon="fa-solid fa-magnifying-glass" />
@@ -370,7 +373,7 @@
                           variant="flat"
                           block
                           class="mb-2"
-                          to="/mis-cotizaciones"
+                          to="/mi-cotizacion"
                           @click="quoteMenuOpen = false"
                         >
                           Ver cotizaciones
@@ -471,12 +474,14 @@
   // Router
   const router = useRouter();
   
+  
   // Variables para el menú móvil
   const mobileDrawer = ref(false);
   const mobileSearch = ref(false);
   
   // Variables para la búsqueda
   const searchQuery = ref('');
+  const mobileSearchQuery = ref('');
   const selectedCategoryInSearch = ref('all');
   
   // Variables para las categorías
@@ -532,9 +537,13 @@
   };
   
   // Método para buscar productos
-  const searchProducts = () => {
+  const searchProducts = async () => {
     if (!searchQuery.value.trim()) return;
     
+    // Cerrar el menú de búsqueda móvil si está abierto
+    mobileSearch.value = false;
+    
+    // Construir los parámetros de búsqueda
     const params = new URLSearchParams();
     params.append('q', searchQuery.value);
     
@@ -542,7 +551,28 @@
       params.append('category', selectedCategoryInSearch.value);
     }
     
-    router.push({ path: '/productos', query: { q: searchQuery.value, category: selectedCategoryInSearch.value !== 'all' ? selectedCategoryInSearch.value : null } });
+    // Redirigir a la página de productos con los parámetros de búsqueda
+    router.push({
+      path: '/productos',
+      query: {
+        q: searchQuery.value,
+        category: selectedCategoryInSearch.value !== 'all' ? selectedCategoryInSearch.value : null
+      }
+    });
+  };
+  
+  // Método para buscar productos en móvil
+  const searchMobile = () => {
+    if (!mobileSearchQuery.value.trim()) return;
+    
+    // Cerrar el menú de búsqueda móvil
+    mobileSearch.value = false;
+    
+    // Redirigir a la página de productos con los parámetros de búsqueda
+    router.push({
+      path: '/productos',
+      query: { q: mobileSearchQuery.value }
+    });
   };
   
   // Quote functionality (antes Cart)

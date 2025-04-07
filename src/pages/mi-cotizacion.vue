@@ -40,72 +40,76 @@
 
           <!-- Lista de productos -->
           <v-card class="mb-6">
-            <v-data-table
-              :headers="tableHeaders"
-              :items="quoteItems"
-              :items-per-page="-1"
-              hide-default-footer
-            >
-              <template v-slot:item.image="{ item }">
-                <div class="d-flex align-center py-2">
-                  <v-img
-                    :src="item.image"
-                    :alt="item.name"
-                    width="80"
-                    height="80"
-                    cover
-                    class="rounded mr-3"
-                  ></v-img>
-                </div>
-              </template>
-
-              <template v-slot:item.name="{ item }">
-                <div class="d-flex flex-column">
-                  <router-link :to="`/productos/${item.id}`" class="quote-product-name">
-                    {{ item.name }}
-                  </router-link>
-                  <span class="text-caption mt-1">Código: {{ item.code }}</span>
-                </div>
-              </template>
-
-              <template v-slot:item.quantity="{ item }">
-                <v-text-field
-                  v-model="item.quantity"
-                  type="number"
-                  min="1"
-                  hide-details
-                  density="compact"
-                  style="max-width: 100px"
-                  class="quantity-input"
-                  @blur="updateQuantity(item.id, parseInt(item.quantity) || 1)"
-                  variant="outlined"
-                ></v-text-field>
-              </template>
-
-              <template v-slot:item.quotedPrice="{ item }">
-                <span v-if="item.quotedPrice">$ {{ formatPrice(item.quotedPrice) }}</span>
-                <span v-else class="text-grey">Por cotizar</span>
-              </template>
-
-              <template v-slot:item.subtotal="{ item }">
-                <span v-if="item.quotedPrice" class="text-subtitle-2 font-weight-medium">
-                  $ {{ formatPrice(item.quotedPrice * item.quantity) }}
-                </span>
-                <span v-else class="text-grey">Por cotizar</span>
-              </template>
-
-              <template v-slot:item.actions="{ item }">
-                <v-btn
-                  icon
-                  variant="text"
-                  color="red-darken-2"
-                  size="small"
-                  @click="removeFromQuote(item.id)"
-                >
-                  <v-icon icon="fa-solid fa-trash"></v-icon>
-                </v-btn>
-              </template>
-            </v-data-table>
+            <v-table>
+              <thead>
+                <tr>
+                  <th class="text-left" style="width: 80px"></th>
+                  <th class="text-left">Producto</th>
+                  <th class="text-center" style="width: 120px">Cantidad</th>
+                  <th class="text-right" style="width: 150px">Precio Unitario</th>
+                  <th class="text-right" style="width: 150px">Subtotal</th>
+                  <th class="text-center" style="width: 80px"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in quoteItems" :key="item.id">
+                  <td class="text-left">
+                    <div class="d-flex align-center py-2">
+                      <v-img
+                        :src="item.image"
+                        :alt="item.name"
+                        width="80"
+                        height="80"
+                        cover
+                        class="rounded"
+                      ></v-img>
+                    </div>
+                  </td>
+                  <td class="text-left">
+                    <div class="d-flex flex-column">
+                      <router-link :to="`/productos/${item.id}`" class="quote-product-name">
+                        {{ item.name }}
+                      </router-link>
+                      <span class="text-caption mt-1">SKU: {{ item.sku }}</span>
+                    </div>
+                  </td>
+                  <td class="text-center">
+                    <v-text-field
+                      v-model.number="item.quantity"
+                      type="number"
+                      min="1"
+                      hide-details
+                      density="compact"
+                      style="max-width: 100px"
+                      class="quantity-input mx-auto"
+                      @update:model-value="updateQuantity(item.id, $event)"
+                      variant="outlined"
+                    ></v-text-field>
+                  </td>
+                  <td class="text-right">
+                    <span v-if="item.quotedPrice">{{ formatPrice(item.quotedPrice) }}</span>
+                    <span v-else class="text-grey">Por cotizar</span>
+                  </td>
+                  <td class="text-right">
+                    <span v-if="item.quotedPrice" class="text-subtitle-2 font-weight-medium">
+                      {{ formatPrice(item.quotedPrice * item.quantity) }}
+                    </span>
+                    <span v-else class="text-grey">Por cotizar</span>
+                  </td>
+                  <td class="text-center">
+                    <v-btn
+                      icon
+                      variant="text"
+                      color="red-darken-2"
+                      size="small"
+                      @click="removeFromQuote(item.id)"
+                    >
+                      <v-icon icon="fa-solid fa-trash"></v-icon>
+                    </v-btn>
+                  </td>
+                </tr>
+              </tbody>
+            </v-table>
           </v-card>
 
           <v-row>
@@ -143,18 +147,18 @@
                   <div class="d-flex justify-space-between mb-3">
                     <span class="text-body-1">Subtotal:</span>
                     <span v-if="hasUnquotedItems" class="text-body-1">Por cotizar</span>
-                    <span v-else class="text-body-1">$ {{ formatPrice(quoteSubtotal) }}</span>
+                    <span v-else class="text-body-1">{{ formatPrice(quoteSubtotal) }}</span>
                   </div>
                   <div class="d-flex justify-space-between mb-3">
                     <span class="text-body-1">IVA 19%:</span>
                     <span v-if="hasUnquotedItems" class="text-body-1">Por cotizar</span>
-                    <span v-else class="text-body-1">$ {{ formatPrice(quoteSubtotal * 0.19) }}</span>
+                    <span v-else class="text-body-1">{{ formatPrice(quoteSubtotal * 0.19) }}</span>
                   </div>
                   <v-divider class="my-3"></v-divider>
                   <div class="d-flex justify-space-between">
                     <span class="text-h6 font-weight-bold">Total estimado:</span>
                     <span v-if="hasUnquotedItems" class="text-h6 font-weight-bold">Por cotizar</span>
-                    <span v-else class="text-h6 font-weight-bold">$ {{ formatPrice(quoteSubtotal * 1.19) }}</span>
+                    <span v-else class="text-h6 font-weight-bold">{{ formatPrice(quoteSubtotal * 1.19) }}</span>
                   </div>
                   <p class="text-caption mt-3">
                     Estos precios son estimados y pueden variar en la cotización final.
@@ -273,13 +277,11 @@
                   v-model="quoteForm.terms"
                   :rules="[v => !!v || 'Debes aceptar los términos']"
                   label="Acepto los términos y condiciones y la política de privacidad"
-                  @click:checkbox="handleTermsCheckbox"
-                  @click="preventLinkInterference"
-                  density="comfortable"
+                  dense
                 ></v-checkbox>
-                <div class="text-caption ml-3">
-                  Puedes leer nuestros <a href="#" @click.stop class="text-decoration-none">términos y condiciones</a> y 
-                  <a href="#" @click.stop class="text-decoration-none">política de privacidad</a> para más información.
+                <div class="text-caption ml-7">
+                  Puedes leer nuestros <a href="#" @click.stop.prevent="openTerms" class="text-decoration-none">términos y condiciones</a> y 
+                  <a href="#" @click.stop.prevent="openPrivacy" class="text-decoration-none">política de privacidad</a> para más información.
                 </div>
               </v-col>
             </v-row>
@@ -326,13 +328,16 @@
       </template>
     </v-snackbar>
 
+    <AppFooter />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useQuoteStore } from '@/stores/quoteStore';
+import { productService } from '@/services/productService';
 import AppHeader from '@/components/layout/AppHeader.vue';
+import AppFooter from '@/components/layout/AppFooter.vue';
 
 // Estado
 const loading = ref(true);
@@ -358,20 +363,11 @@ const quoteForm = ref({
 // Referencia al formulario
 const quoteFormRef = ref(null);
 
-// Configuración de la tabla
-const tableHeaders = [
-  { title: 'Producto', key: 'image', width: '80px', sortable: false },
-  { title: 'Nombre', key: 'name', sortable: false },
-  { title: 'Cantidad', key: 'quantity', align: 'center', width: '120px', sortable: false },
-  { title: 'Precio Unitario', key: 'quotedPrice', align: 'end', width: '150px', sortable: false },
-  { title: 'Subtotal', key: 'subtotal', align: 'end', width: '150px', sortable: false },
-  { title: '', key: 'actions', align: 'center', width: '80px', sortable: false },
-];
-
 // Store de cotizaciones
 const quoteStore = useQuoteStore();
 const quoteItems = computed(() => quoteStore.quoteItems);
 const quoteSubtotal = computed(() => quoteStore.quoteSubtotal);
+const quoteItemCount = computed(() => quoteStore.quoteItemCount);
 
 // Verificar si hay productos sin cotizar
 const hasUnquotedItems = computed(() => {
@@ -380,11 +376,17 @@ const hasUnquotedItems = computed(() => {
 
 // Métodos
 const formatPrice = (price) => {
-  return quoteStore.formatPrice(price);
+  return new Intl.NumberFormat('es-CL', { 
+    style: 'currency', 
+    currency: 'CLP',
+    maximumFractionDigits: 0
+  }).format(price);
 };
 
 const updateQuantity = (productId, quantity) => {
-  quoteStore.updateQuoteItemQuantity(productId, quantity);
+  // Asegurar que la cantidad sea al menos 1
+  const validQuantity = Math.max(1, parseInt(quantity) || 1);
+  quoteStore.updateQuoteItemQuantity(productId, validQuantity);
 };
 
 const removeFromQuote = (productId) => {
@@ -394,9 +396,7 @@ const removeFromQuote = (productId) => {
 
 const clearQuote = () => {
   if (confirm('¿Estás seguro de que quieres vaciar tu cotización?')) {
-    quoteItems.value.forEach(item => {
-      quoteStore.removeFromQuote(item.id);
-    });
+    quoteStore.clearQuote();
     showSnackbarMessage('Tu cotización ha sido vaciada', 'info', 'fa-solid fa-info-circle');
   }
 };
@@ -417,19 +417,30 @@ const submitQuoteRequest = async () => {
   submitting.value = true;
   
   try {
-    // Aquí iría la lógica para enviar la cotización al backend
+    // Preparar los datos de la cotización
+    const quoteData = {
+      items: quoteItems.value,
+      customer: {
+        ...quoteForm.value
+      },
+      notes: quoteNotes.value,
+      status: 'submitted',
+      submittedAt: new Date().toISOString()
+    };
+    
+    // Enviar la cotización usando el store
+    const result = quoteStore.submitQuote();
+    
+    // En una implementación real, aquí enviaríamos los datos al servidor
     await new Promise(resolve => setTimeout(resolve, 1500)); // Simular retraso de red
     
-    // Simulamos éxito
+    // Mostrar la confirmación
     showRequestForm.value = false;
     showSnackbarMessage(
       'Tu solicitud de cotización ha sido enviada. Te contactaremos pronto.',
       'success',
       'fa-solid fa-check-circle'
     );
-    
-    // Opcional: limpiar la cotización después de enviarla
-    // clearQuote();
     
     // Resetear formulario
     quoteForm.value = {
@@ -440,6 +451,9 @@ const submitQuoteRequest = async () => {
       message: '',
       terms: false
     };
+    
+    // Opcional: limpiar la cotización después de enviarla
+    // quoteStore.clearQuote();
   } catch (error) {
     console.error('Error al enviar la solicitud:', error);
     showSnackbarMessage(
@@ -452,20 +466,26 @@ const submitQuoteRequest = async () => {
   }
 };
 
-const handleTermsCheckbox = (e) => {
-  quoteForm.value.terms = e;
+const openTerms = () => {
+  // Abre los términos y condiciones (implementa esto según tus necesidades)
+  window.open('/terminos-y-condiciones', '_blank');
 };
 
-const preventLinkInterference = (e) => {
-  // Prevenir que el clic en enlaces dentro del label afecte al checkbox
-  e.stopPropagation();
+const openPrivacy = () => {
+  // Abre la política de privacidad (implementa esto según tus necesidades)
+  window.open('/politica-de-privacidad', '_blank');
 };
 
+// Cargar datos al montar el componente
 onMounted(() => {
-  // Simular carga de datos
-  setTimeout(() => {
+  // Verificar si hay una cotización activa
+  if (quoteItems.value.length > 0) {
     loading.value = false;
-  }, 500);
+    return;
+  }
+  
+  // Si no hay cotización activa, finalizar carga
+  loading.value = false;
 });
 </script>
 

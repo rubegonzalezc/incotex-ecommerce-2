@@ -1,23 +1,43 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 
 export const useQuoteStore = defineStore('quote', () => {
-  // Estado
-  const quoteItems = ref([]);
-  const quoteStatus = ref('pending'); // pending, submitted, approved, rejected
+  // Estado - Cargar desde localStorage si existe
+  const quoteItems = ref(loadQuoteItemsFromStorage());
+  const quoteStatus = ref(localStorage.getItem('quoteStatus') || 'pending'); // pending, submitted, approved, rejected
   
   // Getters (computed)
   const quoteItemCount = computed(() => {
     return quoteItems.value.reduce((total, item) => total + item.quantity, 0);
   });
   
-  // Ya no calculamos subtotal porque los precios serán cotizados
   const quoteSubtotal = computed(() => {
     // Solo calculamos si hay precios cotizados
     return quoteItems.value.reduce((total, item) => {
       return total + ((item.quotedPrice || 0) * item.quantity);
     }, 0);
   });
+  
+  // Función para cargar los items de cotización desde localStorage
+  function loadQuoteItemsFromStorage() {
+    try {
+      const storedItems = localStorage.getItem('quoteItems');
+      return storedItems ? JSON.parse(storedItems) : [];
+    } catch (error) {
+      console.error('Error loading quote items from localStorage:', error);
+      return [];
+    }
+  }
+  
+  // Función para guardar los items de cotización en localStorage
+  function saveQuoteItemsToStorage() {
+    try {
+      localStorage.setItem('quoteItems', JSON.stringify(quoteItems.value));
+      localStorage.setItem('quoteStatus', quoteStatus.value);
+    } catch (error) {
+      console.error('Error saving quote items to localStorage:', error);
+    }
+  }
   
   // Acciones (methods)
   function addToQuote(product, quantity = 1) {
@@ -37,12 +57,17 @@ export const useQuoteStore = defineStore('quote', () => {
         status: 'pending'  // Estado del ítem: pending, quoted, unavailable
       });
     }
+    
+    // Guardar cambios en localStorage
+    saveQuoteItemsToStorage();
   }
   
   function removeFromQuote(productId) {
     const index = quoteItems.value.findIndex(item => item.id === productId);
     if (index !== -1) {
       quoteItems.value.splice(index, 1);
+      // Guardar cambios en localStorage
+      saveQuoteItemsToStorage();
     }
   }
   
@@ -50,6 +75,8 @@ export const useQuoteStore = defineStore('quote', () => {
     const item = quoteItems.value.find(item => item.id === productId);
     if (item) {
       item.quantity = quantity;
+      // Guardar cambios en localStorage
+      saveQuoteItemsToStorage();
     }
   }
   
@@ -57,17 +84,25 @@ export const useQuoteStore = defineStore('quote', () => {
     const item = quoteItems.value.find(item => item.id === productId);
     if (item) {
       item.notes = notes;
+      // Guardar cambios en localStorage
+      saveQuoteItemsToStorage();
     }
   }
   
   function clearQuote() {
     quoteItems.value = [];
     quoteStatus.value = 'pending';
+    // Limpiar localStorage
+    localStorage.removeItem('quoteItems');
+    localStorage.removeItem('quoteStatus');
   }
   
   function submitQuote() {
-    // Aquí iría la lógica para enviar la cotización al backend
+    // Actualizar estado
     quoteStatus.value = 'submitted';
+    // Guardar cambios en localStorage
+    saveQuoteItemsToStorage();
+    
     return {
       id: 'Q-' + Date.now(),
       items: [...quoteItems.value],
@@ -78,37 +113,21 @@ export const useQuoteStore = defineStore('quote', () => {
   
   function formatPrice(price) {
     if (price === null || price === undefined) return 'Por cotizar';
-    return price.toLocaleString('es-CL');
+    return new Intl.NumberFormat('es-CL', { 
+      style: 'currency', 
+      currency: 'CLP',
+      maximumFractionDigits: 0
+    }).format(price);
   }
   
-  // Datos de ejemplo para simulación
-  function loadSampleQuoteItems() {
-    quoteItems.value = [
-      {
-        id: 1,
-        name: 'Taladro Percutor Inalámbrico 20V',
-        sku: 'TAL-2050',
-        image: 'https://via.placeholder.com/60',
-        quantity: 1,
-        notes: 'Necesito que incluya dos baterías',
-        quotedPrice: null,
-        status: 'pending'
-      },
-      {
-        id: 2,
-        name: 'Set de Destornilladores Profesionales',
-        sku: 'DEST-PRO-42',
-        image: 'https://via.placeholder.com/60',
-        quantity: 2,
-        notes: '',
-        quotedPrice: null,
-        status: 'pending'
-      }
-    ];
-  }
+  // Observar cambios en quoteItems para sincronizar con localStorage automáticamente
+  watch(quoteItems, () => {
+    saveQuoteItemsToStorage();
+  }, { deep: true });
   
-  // Cargar datos de ejemplo al iniciar
-  loadSampleQuoteItems();
+  watch(quoteStatus, () => {
+    localStorage.setItem('quoteStatus', quoteStatus.value);
+  });
   
   return {
     quoteItems,

@@ -807,423 +807,313 @@
   </template>
   
   <script setup>
-  import { ref, computed, onMounted } from 'vue';
-  import AppHeader from '@/components/layout/AppHeader.vue';
-  import AppFooter from '@/components/layout/AppFooter.vue';
-  import { useQuoteStore } from '@/stores/quoteStore';
-  import { useRouter } from 'vue-router';
-  
-  const router = useRouter();
-  
-  // Estado general
-  const loading = ref(true);
-  const activeTab = ref('dashboard');
-  const menuItems = [
-    { title: 'Dashboard', value: 'dashboard', icon: 'fa-solid fa-home' },
-    { title: 'Mis Cotizaciones', value: 'quotes', icon: 'fa-solid fa-clipboard-list' },
-    { title: 'Perfil', value: 'profile', icon: 'fa-solid fa-user' }
-  ];
-  
-  // Tab de Perfil
-  const profileTab = ref('personal');
-  
-  // Datos del usuario
-  const userProfile = ref({
-    firstName: 'Juan',
-    lastName: 'Pérez',
-    email: 'juan.perez@empresa.cl',
-    phone: '+56 9 8765 4321'
-  });
-  
-  // Formulario de información personal
-  const personalForm = ref(null);
-  const personalFormValid = ref(true);
-  const personalInfoUpdating = ref(false);
-  const personalInfo = ref({ ...userProfile.value });
-  
-  // Formulario de contraseña
-  const passwordForm = ref(null);
-  const passwordFormValid = ref(false);
-  const passwordUpdating = ref(false);
-  const passwordInfo = ref({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
-  
-  // Formulario de información de empresa
-  const companyForm = ref(null);
-  const companyFormValid = ref(true);
-  const companyUpdating = ref(false);
-  const companyInfo = ref({
-    name: 'Industrias XYZ Ltda.',
-    rut: '76.543.210-8',
-    industry: 'Manufactura',
-    website: 'www.industriasxyz.cl',
-    address: 'Av. Las Industrias 1234, Santiago, Chile'
-  });
-  
-  // Reglas de validación
-  const emailRules = [
-    v => !!v || 'El email es requerido',
-    v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) || 'Email no válido'
-  ];
-  
-  const passwordRules = [
-    v => !!v || 'La contraseña es requerida',
-    v => v.length >= 8 || 'La contraseña debe tener al menos 8 caracteres',
-    v => /[A-Z]/.test(v) || 'Debe contener al menos una mayúscula',
-    v => /[0-9]/.test(v) || 'Debe contener al menos un número'
-  ];
-  
-  // Datos de cotizaciones
-  const quotesPage = ref(1);
-  const quotesPerPage = 10;
-  const quoteFilter = ref('all');
-  const quoteSearch = ref('');
-  const userQuotes = ref([]);
-  const quoteDetailDialog = ref(false);
-  const selectedQuote = ref(null);
-  const commentSending = ref(false);
-  const newComment = ref('');
-  const quoteCancelling = ref(false);
-  
-  // Filtros de estado para cotizaciones
-  const statusFilters = [
-    { title: 'Todas', value: 'all' },
-    { title: 'Pendientes', value: 'pending' },
-    { title: 'Aprobadas', value: 'approved' },
-    { title: 'Rechazadas', value: 'rejected' }
-  ];
-  
-  // Formulario de contacto con soporte
-  const showContactForm = ref(false);
-  const supportForm = ref({
-    topic: '',
-    message: '',
-    attachments: []
-  });
-  const supportTopics = [
-    'Problema con una cotización',
-    'Consulta sobre productos',
-    'Problema de acceso a la cuenta',
-    'Facturación',
-    'Otro'
-  ];
-  const supportFormValid = ref(false);
-  const supportFormSubmitting = ref(false);
-  
-  // Computed properties
-  const userInitials = computed(() => {
-    return `${userProfile.value.firstName.charAt(0)}${userProfile.value.lastName.charAt(0)}`;
-  });
-  
-  const quoteCounts = computed(() => {
-    return {
-      all: userQuotes.value.length,
-      pending: userQuotes.value.filter(q => q.status === 'pending').length,
-      approved: userQuotes.value.filter(q => q.status === 'approved').length,
-      rejected: userQuotes.value.filter(q => q.status === 'rejected').length
-    };
-  });
-  
-  const recentQuotes = computed(() => {
-    return userQuotes.value
-      .sort((a, b) => new Date(b.date) - new Date(a.date))
-      .slice(0, 5);
-  });
-  
-  const filteredQuotes = computed(() => {
-    let filtered = [...userQuotes.value];
-    
-    // Aplicar filtro por estado
-    if (quoteFilter.value !== 'all') {
-      filtered = filtered.filter(q => q.status === quoteFilter.value);
-    }
-    
-    // Aplicar búsqueda
-    if (quoteSearch.value) {
-      const searchTerm = quoteSearch.value.toLowerCase();
-      filtered = filtered.filter(q => 
-        q.id.toString().includes(searchTerm) || 
-        q.items.some(item => 
-          item.name.toLowerCase().includes(searchTerm) || 
-          item.code.toLowerCase().includes(searchTerm)
-        )
-      );
-    }
-    
-    // Ordenar por fecha (más recientes primero)
-    return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
-  });
-  
-  const paginatedQuotes = computed(() => {
-    const start = (quotesPage.value - 1) * quotesPerPage;
-    const end = start + quotesPerPage;
-    return filteredQuotes.value.slice(start, end);
-  });
-  
-  // Métodos
-  const loadData = async () => {
-    try {
-      loading.value = true;
+import { ref, computed, onMounted, watch } from 'vue';
+import AppHeader from '@/components/layout/AppHeader.vue';
+import AppFooter from '@/components/layout/AppFooter.vue';
+import { useQuoteStore } from '@/stores/quoteStore';
+import { quoteService } from '@/services/quoteService';
+import { userService } from '@/services/userService';
+import { useRouter } from 'vue-router';
 
-      // Verificar autenticación
-      const userData = localStorage.getItem('user_data');
-      
-      if (!userData) {
-        console.log('Usuario no autenticado, redirigiendo a login');
-        // Redirigir al login con parámetro de redirección
-        router.replace({ 
-          path: '/iniciar-sesion', 
-          query: { redirect: '/mi-cuenta' } 
-        });
-        return; // Detener la carga de datos
-      }
-      
-      console.log('Usuario autenticado, cargando datos');
-      
-      // Si hay sesión, parsear los datos del usuario
-      const user = JSON.parse(userData);
-      userProfile.value = {
-        firstName: user.firstName || 'Usuario',
-        lastName: user.lastName || '',
-        email: user.email || '',
-        phone: user.phone || '+56 9 8765 4321'
-      };
-      
-      // Actualizar el formulario con los datos del usuario
-      personalInfo.value = { ...userProfile.value };
-      
-      // En una aplicación real, aquí cargaríamos los datos del usuario y sus cotizaciones
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulación de carga
-      
-      // Simular datos de cotizaciones
-      userQuotes.value = generateMockQuotes();
-    } catch (error) {
-      console.error('Error cargando datos:', error);
-    } finally {
-      loading.value = false;
-    }
+const router = useRouter();
+const quoteStore = useQuoteStore();
+
+// Estado general
+const loading = ref(true);
+const activeTab = ref('dashboard');
+const menuItems = [
+  { title: 'Dashboard', value: 'dashboard', icon: 'fa-solid fa-home' },
+  { title: 'Mis Cotizaciones', value: 'quotes', icon: 'fa-solid fa-clipboard-list' },
+  { title: 'Perfil', value: 'profile', icon: 'fa-solid fa-user' }
+];
+
+// Tab de Perfil
+const profileTab = ref('personal');
+
+// Datos del usuario
+const userProfile = ref({
+  firstName: '',
+  lastName: '',
+  email: '',
+  phone: ''
+});
+
+// Formulario de información personal
+const personalForm = ref(null);
+const personalFormValid = ref(true);
+const personalInfoUpdating = ref(false);
+const personalInfo = ref({ ...userProfile.value });
+
+// Formulario de contraseña
+const passwordForm = ref(null);
+const passwordFormValid = ref(false);
+const passwordUpdating = ref(false);
+const passwordInfo = ref({
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+});
+
+// Formulario de información de empresa
+const companyForm = ref(null);
+const companyFormValid = ref(true);
+const companyUpdating = ref(false);
+const companyInfo = ref({
+  name: '',
+  rut: '',
+  industry: '',
+  website: '',
+  address: ''
+});
+
+// Reglas de validación
+const emailRules = [
+  v => !!v || 'El email es requerido',
+  v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) || 'Email no válido'
+];
+
+const passwordRules = [
+  v => !!v || 'La contraseña es requerida',
+  v => v.length >= 8 || 'La contraseña debe tener al menos 8 caracteres',
+  v => /[A-Z]/.test(v) || 'Debe contener al menos una mayúscula',
+  v => /[0-9]/.test(v) || 'Debe contener al menos un número'
+];
+
+// Datos de cotizaciones
+const quotesPage = ref(1);
+const quotesPerPage = 10;
+const quoteFilter = ref('all');
+const quoteSearch = ref('');
+const userQuotes = ref([]);
+const quoteDetailDialog = ref(false);
+const selectedQuote = ref(null);
+const commentSending = ref(false);
+const newComment = ref('');
+const quoteCancelling = ref(false);
+
+// Filtros de estado para cotizaciones
+const statusFilters = [
+  { title: 'Todas', value: 'all' },
+  { title: 'Pendientes', value: 'pending' },
+  { title: 'Aprobadas', value: 'approved' },
+  { title: 'Rechazadas', value: 'rejected' }
+];
+
+// Formulario de contacto con soporte
+const showContactForm = ref(false);
+const supportForm = ref({
+  topic: '',
+  message: '',
+  attachments: []
+});
+const supportTopics = [
+  'Problema con una cotización',
+  'Consulta sobre productos',
+  'Problema de acceso a la cuenta',
+  'Facturación',
+  'Otro'
+];
+const supportFormValid = ref(false);
+const supportFormSubmitting = ref(false);
+
+// Computed properties
+const userInitials = computed(() => {
+  return `${userProfile.value.firstName.charAt(0)}${userProfile.value.lastName.charAt(0)}`;
+});
+
+const quoteCounts = computed(() => {
+  return {
+    all: userQuotes.value.length,
+    pending: userQuotes.value.filter(q => q.status === 'pending').length,
+    approved: userQuotes.value.filter(q => q.status === 'approved').length,
+    rejected: userQuotes.value.filter(q => q.status === 'rejected').length
   };
+});
+
+const recentQuotes = computed(() => {
+  return userQuotes.value
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 5);
+});
+
+const filteredQuotes = computed(() => {
+  let filtered = [...userQuotes.value];
   
-  const generateMockQuotes = () => {
-    // Función para generar datos simulados de cotizaciones
-    const mockQuotes = [];
-    
-    // Crear algunas cotizaciones con diferentes estados
-    const today = new Date();
-    
-    // Cotización pendiente reciente
-    mockQuotes.push({
-      id: 10045,
-      date: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 2).toISOString(),
-      status: 'pending',
-      items: [
-        {
-          id: 1,
-          name: 'Contactor Tripolar ABB AX09-30-10-80',
-          code: 'CTR-ABB-093010',
-          image: 'https://www.electromaterial.cl/wp-content/uploads/2021/01/AX09-30-10-80-300x300.jpg',
-          quantity: 3
-        },
-        {
-          id: 2,
-          name: 'Interruptor Automático Schneider C60H-DC',
-          code: 'INT-SCH-C60HDC',
-          image: 'https://www.se.com/cl/es/product/%7B%7Bitem.productUrlPath%7D%7D/image/C60H-DC.JPG',
-          quantity: 2
-        }
-      ],
-      comments: [
-        {
-          type: 'user',
-          text: 'Necesito estos productos con urgencia, ¿podrían indicarme disponibilidad y tiempos de entrega?',
-          date: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 2, 10, 15).toISOString()
-        },
-        {
-          type: 'admin',
-          text: 'Buen día. Estamos verificando stock de estos productos. Le enviaremos la cotización dentro de 24 horas.',
-          date: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1, 9, 30).toISOString()
-        }
-      ]
-    });
-    
-    // Cotización aprobada
-    mockQuotes.push({
-      id: 10033,
-      date: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 15).toISOString(),
-      updatedAt: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 13).toISOString(),
-      status: 'approved',
-      items: [
-        {
-          id: 3,
-          name: 'Relé Térmico Siemens 3RU1126-4DB0',
-          code: 'RLT-SIE-3RU1126',
-          image: 'https://assets.new.siemens.com/siemens/assets/api/uuid:743bc897040fa975e4d014d4ebae15416ef25c01/width:1125/crop:0,0165:0,3965:1/quality:high/3ru11-26-4db0-relai-thermique-cl10-17-6-22a-pour-contacteur-3rt1-o-3rt2-montage-direct.jpg',
-          quantity: 5,
-          price: 28900
-        },
-        {
-          id: 5,
-          name: 'Cable Multiconductor LSHF 4x2.5mm2',
-          code: 'CBL-LSHF-4X25',
-          image: 'https://www.cobrex.cl/wp-content/uploads/2018/05/cables-electricos-multiconductores-1.jpg',
-          quantity: 100,
-          price: 1250
-        },
-        {
-          id: 7,
-          name: 'Transformador de Control Legrand 250VA',
-          code: 'TRF-LEG-250VA',
-          image: 'https://multimedia.legrand.com/multimedia/content/cr-photo/b-/legrand/productselector/products/42225-s.jpg',
-          quantity: 1,
-          price: 85000
-        }
-      ],
-      comments: [
-        {
-          type: 'user',
-          text: 'Necesito estos productos para un proyecto importante.',
-          date: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 15, 14, 22).toISOString()
-        },
-        {
-          type: 'admin',
-          text: 'Cotización aprobada. Hemos enviado los precios y condiciones a su correo electrónico.',
-          date: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 13, 10, 45).toISOString()
-        },
-        {
-          type: 'user',
-          text: '¿Podrían indicarme los tiempos de entrega estimados para estos productos?',
-          date: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 13, 11, 30).toISOString()
-        },
-        {
-          type: 'admin',
-          text: 'Tenemos todos los productos disponibles en stock. Tiempo de entrega estimado: 48 horas hábiles después de confirmado el pago.',
-          date: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 13, 15, 20).toISOString()
-        }
-      ]
-    });
-    
-    // Cotización rechazada
-    mockQuotes.push({
-      id: 9987,
-      date: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30).toISOString(),
-      updatedAt: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 28).toISOString(),
-      status: 'rejected',
-      items: [
-        {
-          id: 9,
-          name: 'Variador de Frecuencia ABB ACS380-04E-02A4-4',
-          code: 'VDF-ABB-ACS380',
-          image: 'https://new.abb.com/products/3AXD50000419015/acs380-04e-02a4-4-three-phase-ac-drive-0-75-kw-380-480-v-ip20-ul-open-type/overview',
-          quantity: 1
-        }
-      ],
-      comments: [
-        {
-          type: 'user',
-          text: 'Necesito cotizar este variador de frecuencia.',
-          date: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30, 16, 45).toISOString()
-        },
-        {
-          type: 'admin',
-          text: 'Lamentamos informarle que este producto se encuentra actualmente sin stock. Podemos ofrecerle un modelo alternativo o gestionar una importación con un plazo de 4 semanas.',
-          date: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 28, 11, 10).toISOString()
-        }
-      ]
-    });
-    
-    // Más cotizaciones pendientes para rellenar
-    for (let i = 0; i < 8; i++) {
-      mockQuotes.push({
-        id: 10000 - i,
-        date: new Date(today.getFullYear(), today.getMonth(), today.getDate() - (45 + i * 5)).toISOString(),
-        status: i % 3 === 0 ? 'pending' : i % 3 === 1 ? 'approved' : 'rejected',
-        items: [
-          {
-            id: 10 + i,
-            name: `Producto ejemplo ${i + 1}`,
-            code: `PRD-${1000 + i}`,
-            image: `https://via.placeholder.com/100?text=PRD${1000 + i}`,
-            quantity: Math.floor(Math.random() * 5) + 1,
-            price: i % 3 === 1 ? Math.round((Math.random() * 50000 + 10000) / 100) * 100 : null
-          }
-        ],
-        comments: []
+  // Aplicar filtro por estado
+  if (quoteFilter.value !== 'all') {
+    filtered = filtered.filter(q => q.status === quoteFilter.value);
+  }
+  
+  // Aplicar búsqueda
+  if (quoteSearch.value) {
+    const searchTerm = quoteSearch.value.toLowerCase();
+    filtered = filtered.filter(q => 
+      q.id.toString().includes(searchTerm) || 
+      q.items.some(item => 
+        item.name.toLowerCase().includes(searchTerm) || 
+        (item.sku && item.sku.toLowerCase().includes(searchTerm))
+      )
+    );
+  }
+  
+  // Ordenar por fecha (más recientes primero)
+  return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+});
+
+const paginatedQuotes = computed(() => {
+  const start = (quotesPage.value - 1) * quotesPerPage;
+  const end = start + quotesPerPage;
+  return filteredQuotes.value.slice(start, end);
+});
+
+// Métodos
+const loadData = async () => {
+  try {
+    loading.value = true;
+
+    // Verificar autenticación
+    if (!userService.isAuthenticated()) {
+      console.log('Usuario no autenticado, redirigiendo a login');
+      router.replace({ 
+        path: '/iniciar-sesion', 
+        query: { redirect: '/mi-cuenta' } 
       });
+      return;
     }
     
-    return mockQuotes;
-  };
-  
-  const formatDate = (dateString) => {
-    const options = { day: 'numeric', month: 'short', year: 'numeric' };
-    return new Date(dateString).toLocaleDateString('es-ES', options);
-  };
-  
-  const formatDateTime = (dateString) => {
-    const options = { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: 'numeric' };
-    return new Date(dateString).toLocaleString('es-ES', options);
-  };
-  
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(amount);
-  };
-  
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'pending': return 'warning';
-      case 'approved': return 'success';
-      case 'rejected': return 'error';
-      default: return 'default';
-    }
-  };
-  
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'pending': return 'Pendiente';
-      case 'approved': return 'Aprobada';
-      case 'rejected': return 'Rechazada';
-      default: return 'Desconocido';
-    }
-  };
-  
-  const calculateTotal = (quote) => {
-    return quote.items.reduce((total, item) => {
-      return total + (item.price || 0) * item.quantity;
-    }, 0);
-  };
-  
-  const viewQuote = (quote) => {
+    console.log('Usuario autenticado, cargando datos');
+    
+    // Obtener datos del usuario
+    const user = userService.getCurrentUser();
+    userProfile.value = {
+      firstName: user.firstName || 'Usuario',
+      lastName: user.lastName || '',
+      email: user.email || '',
+      phone: user.phone || '+56 9 8765 4321'
+    };
+    
+    // Actualizar el formulario con los datos del usuario
+    personalInfo.value = { ...userProfile.value };
+    
+    // Generar cotizaciones de muestra para el usuario si es nuevo
+    await quoteService.generateSampleQuotes();
+    
+    // Cargar cotizaciones del usuario
+    userQuotes.value = await quoteService.getQuotes();
+    
+    // Cargar estadísticas
+    const stats = await quoteService.getQuoteStats();
+    quoteCounts.value = {
+      all: stats.total,
+      pending: stats.pending,
+      approved: stats.approved,
+      rejected: stats.rejected
+    };
+    
+  } catch (error) {
+    console.error('Error cargando datos:', error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const formatDate = (dateString) => {
+  const options = { day: 'numeric', month: 'short', year: 'numeric' };
+  return new Date(dateString).toLocaleDateString('es-ES', options);
+};
+
+const formatDateTime = (dateString) => {
+  const options = { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: 'numeric' };
+  return new Date(dateString).toLocaleString('es-ES', options);
+};
+
+const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(amount);
+};
+
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'pending': return 'warning';
+    case 'approved': return 'success';
+    case 'rejected': return 'error';
+    default: return 'default';
+  }
+};
+
+const getStatusText = (status) => {
+  switch (status) {
+    case 'pending': return 'Pendiente';
+    case 'approved': return 'Aprobada';
+    case 'rejected': return 'Rechazada';
+    default: return 'Desconocido';
+  }
+};
+
+const calculateTotal = (quote) => {
+  return quote.items.reduce((total, item) => {
+    return total + (item.quotedPrice || 0) * item.quantity;
+  }, 0);
+};
+
+const viewQuote = async (quote) => {
+  try {
     selectedQuote.value = quote;
     quoteDetailDialog.value = true;
     newComment.value = '';
-  };
-  
-  const updatePersonalInfo = async () => {
-    try {
-      personalInfoUpdating.value = true;
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulación de guardado
-      
-      // Actualizar datos del usuario
-      userProfile.value = { ...personalInfo.value };
-      
-      // Mostrar mensaje de éxito
-      alert('Información personal actualizada correctamente');
-    } catch (error) {
-      console.error('Error actualizando información:', error);
-      alert('Error al actualizar la información');
-    } finally {
-      personalInfoUpdating.value = false;
+    
+    // Obtener datos actualizados de la cotización
+    const updatedQuote = await quoteService.getQuoteById(quote.id);
+    if (updatedQuote) {
+      selectedQuote.value = updatedQuote;
     }
-  };
-  
-  const updatePassword = async () => {
-    try {
-      passwordUpdating.value = true;
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulación de guardado
-      
+  } catch (error) {
+    console.error('Error al cargar detalles de la cotización:', error);
+  }
+};
+
+const updatePersonalInfo = async () => {
+  try {
+    personalInfoUpdating.value = true;
+    
+    // Validar formulario
+    const { valid } = await personalForm.value.validate();
+    if (!valid) return;
+    
+    // Actualizar datos del usuario mediante el servicio
+    const result = await userService.updateProfile({
+      firstName: personalInfo.value.firstName,
+      lastName: personalInfo.value.lastName,
+      phone: personalInfo.value.phone
+    });
+    
+    if (result.success) {
+      // Actualizar datos locales
+      userProfile.value = { ...personalInfo.value };
+      alert('Información personal actualizada correctamente');
+    }
+  } catch (error) {
+    console.error('Error actualizando información:', error);
+    alert('Error al actualizar la información: ' + (error.message || 'Inténtalo nuevamente'));
+  } finally {
+    personalInfoUpdating.value = false;
+  }
+};
+
+const updatePassword = async () => {
+  try {
+    passwordUpdating.value = true;
+    
+    // Validar formulario
+    const { valid } = await passwordForm.value.validate();
+    if (!valid) return;
+    
+    // Usar el servicio para cambiar la contraseña
+    const result = await userService.changePassword(
+      passwordInfo.value.currentPassword, 
+      passwordInfo.value.newPassword
+    );
+    
+    if (result.success) {
       // Mostrar mensaje de éxito
       alert('Contraseña actualizada correctamente');
       
@@ -1233,158 +1123,167 @@
         newPassword: '',
         confirmPassword: ''
       };
-    } catch (error) {
-      console.error('Error actualizando contraseña:', error);
-      alert('Error al actualizar la contraseña');
-    } finally {
-      passwordUpdating.value = false;
     }
-  };
-  
-  const updateCompanyInfo = async () => {
-    try {
-      companyUpdating.value = true;
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulación de guardado
-      
-      // Mostrar mensaje de éxito
-      alert('Información de empresa actualizada correctamente');
-    } catch (error) {
-      console.error('Error actualizando información de empresa:', error);
-      alert('Error al actualizar la información de empresa');
-    } finally {
-      companyUpdating.value = false;
-    }
-  };
-  
-  const addComment = async () => {
-    if (!newComment.value.trim()) return;
+  } catch (error) {
+    console.error('Error actualizando contraseña:', error);
+    alert('Error al actualizar la contraseña: ' + (error.message || 'Inténtalo nuevamente'));
+  } finally {
+    passwordUpdating.value = false;
+  }
+};
+
+const updateCompanyInfo = async () => {
+  try {
+    companyUpdating.value = true;
     
-    try {
-      commentSending.value = true;
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulación
-      
-      // Añadir comentario a la cotización
-      selectedQuote.value.comments = selectedQuote.value.comments || [];
-      selectedQuote.value.comments.push({
-        type: 'user',
-        text: newComment.value.trim(),
-        date: new Date().toISOString()
-      });
-      
-      // Limpiar campo
-      newComment.value = '';
-      
-      // Simular respuesta automática después de 2 segundos
-      setTimeout(() => {
-        if (selectedQuote.value && quoteDetailDialog.value) {
-          selectedQuote.value.comments.push({
-            type: 'admin',
-            text: 'Gracias por tu mensaje. Un ejecutivo revisará tu consulta y te responderá a la brevedad.',
-            date: new Date().toISOString()
-          });
-        }
-      }, 2000);
-    } catch (error) {
-      console.error('Error enviando comentario:', error);
-      alert('Error al enviar el comentario');
-    } finally {
-      commentSending.value = false;
-    }
-  };
-  
-  const cancelQuote = async () => {
-    if (!confirm('¿Está seguro que desea cancelar esta cotización?')) return;
+    // Validar formulario
+    const { valid } = await companyForm.value.validate();
+    if (!valid) return;
     
-    try {
-      quoteCancelling.value = true;
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulación
-      
-      // Cambiar estado a rechazado
-      selectedQuote.value.status = 'rejected';
-      selectedQuote.value.updatedAt = new Date().toISOString();
-      
-      // Añadir comentario
-      selectedQuote.value.comments = selectedQuote.value.comments || [];
-      selectedQuote.value.comments.push({
-        type: 'user',
-        text: 'Cotización cancelada por el cliente.',
-        date: new Date().toISOString()
-      });
-      
-      alert('Cotización cancelada correctamente');
-    } catch (error) {
-      console.error('Error cancelando cotización:', error);
-      alert('Error al cancelar la cotización');
-    } finally {
-      quoteCancelling.value = false;
-    }
-  };
-  
-  const downloadQuote = (quote) => {
-    // En una aplicación real, aquí se generaría un PDF
-    alert(`Descargando cotización #${quote.id} en formato PDF...`);
-  };
-  
-  const contactSales = () => {
-    alert('Se abrirá una ventana de chat con el departamento de ventas.');
-  };
-  
-  const submitSupportForm = async () => {
-    try {
-      supportFormSubmitting.value = true;
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulación
-      
-      alert('Tu consulta ha sido enviada. Te responderemos a la brevedad.');
-      supportForm.value = {
-        topic: '',
-        message: '',
-        attachments: []
-      };
-      showContactForm.value = false;
-    } catch (error) {
-      console.error('Error enviando formulario:', error);
-      alert('Error al enviar el formulario');
-    } finally {
-      supportFormSubmitting.value = false;
-    }
-  };
-  
-  const logout = () => {
-    // Eliminar datos de usuario
-    localStorage.removeItem('user_data');
+    // Simular actualización de información de empresa
+    // En una implementación real, se enviaría al servidor
     
-    // Disparar evento para actualizar otros componentes
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: 'user_data',
-      newValue: null
-    }));
+    // Mostrar mensaje de éxito
+    alert('Información de empresa actualizada correctamente');
+  } catch (error) {
+    console.error('Error actualizando información de empresa:', error);
+    alert('Error al actualizar la información de empresa');
+  } finally {
+    companyUpdating.value = false;
+  }
+};
+
+const addComment = async () => {
+  if (!newComment.value.trim() || !selectedQuote.value) return;
+  
+  try {
+    commentSending.value = true;
     
+    // Usar el servicio para añadir el comentario
+    await quoteService.addComment(selectedQuote.value.id, newComment.value.trim());
+    
+    // Actualizar la cotización seleccionada para reflejar el nuevo comentario
+    const updatedQuote = await quoteService.getQuoteById(selectedQuote.value.id);
+    if (updatedQuote) {
+      selectedQuote.value = updatedQuote;
+    }
+    
+    // Limpiar campo
+    newComment.value = '';
+  } catch (error) {
+    console.error('Error enviando comentario:', error);
+    alert('Error al enviar el comentario');
+  } finally {
+    commentSending.value = false;
+  }
+};
+
+const cancelQuote = async () => {
+  if (!confirm('¿Está seguro que desea cancelar esta cotización?')) return;
+  
+  try {
+    quoteCancelling.value = true;
+    
+    // Usar el servicio para cancelar la cotización
+    await quoteService.cancelQuote(selectedQuote.value.id, 'Cotización cancelada por el cliente.');
+    
+    // Recargar datos 
+    const updatedQuotes = await quoteService.getQuotes();
+    userQuotes.value = updatedQuotes;
+    
+    // Actualizar la cotización seleccionada
+    const updatedQuote = updatedQuotes.find(q => q.id === selectedQuote.value.id);
+    if (updatedQuote) {
+      selectedQuote.value = updatedQuote;
+    }
+    
+    alert('Cotización cancelada correctamente');
+  } catch (error) {
+    console.error('Error cancelando cotización:', error);
+    alert('Error al cancelar la cotización');
+  } finally {
+    quoteCancelling.value = false;
+  }
+};
+
+const downloadQuote = async (quote) => {
+  try {
+    // Generar PDF de la cotización
+    const result = await quoteService.generateQuotePDF(quote.id);
+    
+    if (result.success) {
+      alert(`Descargando cotización #${quote.id} en formato PDF: ${result.fileName}`);
+    } else {
+      alert('Error al generar el PDF');
+    }
+  } catch (error) {
+    console.error('Error descargando cotización:', error);
+    alert('Error al descargar la cotización');
+  }
+};
+
+const contactSales = () => {
+  alert('Se abrirá una ventana de chat con el departamento de ventas.');
+};
+
+const submitSupportForm = async () => {
+  try {
+    supportFormSubmitting.value = true;
+    
+    // Validar formulario
+    const { valid } = await supportForm.value.validate();
+    if (!valid) return;
+    
+    // Simular envío de formulario
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    alert('Tu consulta ha sido enviada. Te responderemos a la brevedad.');
+    supportForm.value = {
+      topic: '',
+      message: '',
+      attachments: []
+    };
+    showContactForm.value = false;
+  } catch (error) {
+    console.error('Error enviando formulario:', error);
+    alert('Error al enviar el formulario');
+  } finally {
+    supportFormSubmitting.value = false;
+  }
+};
+
+const logout = () => {
+  // Usar el servicio para cerrar sesión
+  const result = userService.logout();
+  
+  if (result.success) {
     // Redirigir a la página de inicio
     router.push('/');
     
     // Mostrar mensaje de despedida
     alert('Has cerrado sesión correctamente');
+  } else {
+    alert('Error al cerrar sesión: ' + result.message);
+  }
+};
+
+// Observador para cambios en las cotizaciones
+watch(userQuotes, async (newQuotes) => {
+  // Mantener sincronizadas las estadísticas
+  const stats = await quoteService.getQuoteStats();
+  quoteCounts.value = {
+    all: stats.total,
+    pending: stats.pending,
+    approved: stats.approved,
+    rejected: stats.rejected
   };
-  
-  // Cargar datos al montar el componente
-  onMounted(() => {
-    // Verificar autenticación antes de cargar datos
-    const userData = localStorage.getItem('user_data');
-    
-    if (!userData) {
-      console.log('Usuario no autenticado, redirigiendo a login');
-      // Redirigir al login con parámetro de redirección
-      router.replace({ 
-        path: '/iniciar-sesion', 
-        query: { redirect: '/mi-cuenta' } 
-      });
-      return; // No cargar datos
-    }
-    
-    // Si hay sesión, cargar datos
-    loadData();
-  });
-  </script>
+}, { deep: true });
+
+// Cargar datos al montar el componente
+onMounted(() => {
+  loadData();
+});
+</script>
   
   <style scoped>
   .account-header {
